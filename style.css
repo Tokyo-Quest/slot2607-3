@@ -1,0 +1,626 @@
+/* ============================================================
+   MID POP ワンボタン・パニック! prototype2
+   キュートでチープなアメコミ調 + 裏ステージ(写実系)
+   ※これまでの上書き調整を統合した整理版
+   ============================================================ */
+
+/* ---------- フォント ----------
+   基本: Yusei Magic(マーカー手書き) / 見出し: Reggae One(荒い叫び系)
+   ドット: DotGothic16。オフライン運用時は3書体をPCにインストール */
+:root {
+  --font-pop: 'Yusei Magic', 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --font-impact: 'Reggae One', 'Yusei Magic', 'Hiragino Kaku Gothic StdN', sans-serif;
+  --font-pixel: 'DotGothic16', 'Yusei Magic', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+body {
+  background: #111;
+  overflow: hidden;
+  font-family: var(--font-pop);
+  font-weight: 400;
+  cursor: default;
+}
+
+#viewport {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#stage {
+  position: relative;
+  width: 1920px; height: 1080px;
+  flex: none;
+  background: #222;
+  overflow: hidden;
+  transform-origin: center center;
+}
+#scene { position: absolute; inset: 0; }
+#fx    { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+#flash {
+  position: absolute; inset: 0; pointer-events: none; z-index: 60;
+  opacity: 0; transition: opacity .25s;
+}
+#debug { position: absolute; inset: 0; pointer-events: none; z-index: 100; display: none; }
+
+/* ---------- トースト(デバッグ切替等の確認表示) ---------- */
+.toast {
+  position: absolute; left: 50%; top: 80px; transform: translateX(-50%);
+  background: rgba(0,0,0,.85); color: #0f8;
+  font-size: 30px; padding: 10px 40px; border-radius: 999px;
+  z-index: 150; pointer-events: none;
+}
+
+/* ---------- デバッグ ---------- */
+.dbg-v { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(0,255,120,.3); }
+.dbg-h { position: absolute; left: 0; right: 0; height: 1px; background: rgba(0,255,120,.3); }
+.dbg-lb { position: absolute; color: rgba(0,255,120,.7); font-size: 12px; }
+.dbg-info {
+  position: absolute; right: 12px; top: 12px;
+  background: rgba(0,0,0,.75); color: #0f8; border: 1px solid #0f8;
+  font-size: 20px; padding: 10px 16px; line-height: 1.5;
+}
+
+/* ---------- 共通パーツ ---------- */
+.layout-abs { position: absolute; transform: translate(-50%,-50%); }
+
+.halftone {
+  background-image: radial-gradient(rgba(0,0,0,.14) 22%, transparent 23%);
+  background-size: 26px 26px;
+}
+
+.burst {   /* アメコミ吹き出し風の大テキスト */
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%) rotate(-4deg);
+  font-family: var(--font-impact);
+  font-size: 140px; color: #fff; text-align: center; white-space: nowrap;
+  -webkit-text-stroke: 8px #111;
+  paint-order: stroke fill;
+  text-shadow: 10px 10px 0 rgba(0,0,0,.35);
+  z-index: 20;
+  animation: pop-in .25s cubic-bezier(.2,2.2,.4,1) both;
+}
+.burst small { display: block; font-size: 48px; -webkit-text-stroke: 5px #111; }
+
+.mg-title {
+  position: absolute; left: 50%; top: 90px; transform: translateX(-50%) rotate(-2deg);
+  font-family: var(--font-impact);
+  font-size: 58px; color: #fff; -webkit-text-stroke: 6px #111; paint-order: stroke fill;
+  background: #111; padding: 8px 50px; border-radius: 16px;
+  box-shadow: 8px 8px 0 rgba(0,0,0,.3);
+  white-space: nowrap; z-index: 15;
+}
+.mg-instr {
+  position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%);
+  font-size: 38px; color: #111; background: #fff;
+  border: 6px solid #111; border-radius: 999px; padding: 12px 60px;
+  box-shadow: 6px 6px 0 rgba(0,0,0,.35);
+  white-space: nowrap; z-index: 15;
+}
+
+.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes pop-in { from { transform: translate(-50%,-50%) scale(0) rotate(-4deg); } }
+@keyframes float-y { 0%,100% { margin-top: 0; } 50% { margin-top: -18px; } }
+/* ほのかな明滅 */
+@keyframes soft-blink { 0%,100% { opacity: 1; } 50% { opacity: .9; } }
+.soft-blink { animation: soft-blink 2.8s ease-in-out infinite; }
+
+#stage.shake { animation: shake .4s; }
+@keyframes shake {
+  0%,100% { margin-left: 0; margin-top: 0; }
+  20% { margin-left: -22px; } 40% { margin-left: 20px; margin-top: -10px; }
+  60% { margin-left: -14px; margin-top: 8px; } 80% { margin-left: 8px; }
+}
+
+/* ---------- 画像素材用 ---------- */
+.price-badge.img-plain, .push-guide.img-plain {
+  background-color: transparent; border: none; box-shadow: none;
+  color: #fff;
+  -webkit-text-stroke: 5px #6b3a00; paint-order: stroke fill;
+}
+.charge-target.face { background-size: cover; background-position: center top; }
+.cutin-stand {
+  width: 400px; height: 560px; margin: 0 auto;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(10px 10px 0 rgba(0,0,0,.25));
+}
+.fit-inner {   /* 素材ごとのサイズ補正用(transformで拡大) */
+  width: 100%; height: 100%;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(8px 8px 0 rgba(0,0,0,.25));
+}
+.bounce-inner {
+  width: 100%; height: 100%;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+}
+
+/* ---------- 待機画面(アトラクト) ---------- */
+.sc-attract {
+  background: repeating-conic-gradient(from 0deg at 50% 42%, #ff9ec6 0 12deg, #ff5fa2 12deg 24deg);
+}
+.attract-logo { text-align: center; z-index: 5; }
+.attract-logo .logo-main {
+  font-family: var(--font-impact);
+  font-size: 160px; color: #fff; letter-spacing: 6px;
+  -webkit-text-stroke: 10px #111; paint-order: stroke fill;
+  text-shadow: 12px 12px 0 #d81b60;
+  transform: rotate(-3deg);
+}
+.attract-logo .logo-sub {
+  font-family: var(--font-impact);
+  font-size: 66px; color: #ffd54f; margin-top: -94px;
+  -webkit-text-stroke: 7px #111; paint-order: stroke fill;
+  transform: rotate(-3deg);
+}
+.price-badge {
+  position: absolute; right: 170px; top: 150px;
+  width: 260px; height: 260px; border-radius: 50%;
+  background: #ffd54f; border: 8px solid #111;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: 44px; color: #111; transform: rotate(10deg);
+  box-shadow: 8px 8px 0 rgba(0,0,0,.3);
+  animation: float-y 2.2s ease-in-out infinite;
+  z-index: 6;
+}
+.price-badge span { font-size: 34px; }
+.push-guide {
+  font-family: var(--font-impact);
+  font-size: 80px; color: #fff; background: #111;
+  padding: 18px 90px; border-radius: 999px;
+  border: 8px solid #fff; box-shadow: 0 0 0 8px #111;
+  white-space: nowrap; z-index: 6;
+}
+.attract-lineup { display: flex; gap: 24px; align-items: flex-end; z-index: 5; }
+.lineup-char {
+  width: 380px; height: 560px;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(8px 8px 0 rgba(0,0,0,.25));
+  animation: float-y 1.8s ease-in-out infinite;
+}
+
+/* ---------- スロット(第1段階) ---------- */
+.sc-slot { background: repeating-linear-gradient(45deg, #4fc3f7 0 70px, #63cdfc 70px 140px); }
+/* 筐体: frame_slot.png(窓は透過)。奥=.reel-layer / 手前=.frame-overlay */
+.slot-cabinet { width: 1456px; height: 816px; }
+.slot-cabinet.plain {
+  background: #ff5fa2;
+  border: 12px solid #111; border-radius: 40px;
+  box-shadow: 16px 16px 0 rgba(0,0,0,.35);
+}
+.reel-layer { position: absolute; inset: 0; z-index: 1; }
+.frame-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  pointer-events: none;
+}
+.reel-window.on-frame {
+  position: absolute; transform: translate(-50%,-50%);
+  overflow: hidden; border-radius: 16px;
+  background: #e9f4f8;
+  box-shadow: inset 0 6px 20px rgba(20,40,80,.35);
+}
+.reel-strip { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
+.sym {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  -webkit-text-stroke: 8px #111; paint-order: stroke fill;
+  border-bottom: 4px dashed rgba(0,0,0,.15);
+}
+.sym.face { background-size: cover; background-position: center top; }
+.slot-side {
+  width: 430px; height: 640px;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(8px 8px 0 rgba(0,0,0,.3));
+  z-index: 3;
+  animation: float-y 2s ease-in-out infinite;
+}
+.slot-push {
+  position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
+  font-size: 44px; color: #fff; background: #111; border-radius: 999px;
+  padding: 10px 56px; white-space: nowrap; z-index: 10;
+}
+/* 残チャレンジカウンター */
+.credit-counter {
+  background: rgba(0,0,0,.75); color: #fff;
+  border: 5px solid #fff; border-radius: 999px;
+  padding: 8px 30px; z-index: 20;
+  display: flex; align-items: center; gap: 16px;
+  white-space: nowrap;
+}
+.credit-counter .cc-label { font-size: 26px; letter-spacing: 2px; color: #ffd54f; }
+.credit-counter .cc-dots { font-size: 30px; letter-spacing: 6px; color: #ff5fa2; }
+@keyframes cc-crack {
+  0%   { transform: translate(-50%,-50%) scale(1); border-color: #fff; }
+  20%  { transform: translate(-52%,-50%) scale(1.15); border-color: #ff1744; box-shadow: 0 0 24px rgba(255,23,68,.8); }
+  40%  { transform: translate(-48%,-50%) scale(1.1); }
+  60%  { transform: translate(-51%,-50%) scale(1.05); border-color: #ff1744; }
+  100% { transform: translate(-50%,-50%) scale(1); border-color: #fff; box-shadow: none; }
+}
+.credit-counter.cc-crack { animation: cc-crack .6s ease-out 1; }
+
+/* ---------- ミニゲーム開始告知(カットイン) ---------- */
+.sc-cutin { background: #111; }
+.speedlines {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, #fff 0 3deg, #111 3deg 9deg);
+  background-size: cover; background-position: center;
+  animation: lines-pulse .45s ease-in-out infinite;
+}
+@keyframes lines-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.09); opacity: .72; }
+}
+.cutin-panel {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) rotate(-3deg);
+  width: 900px; padding: 50px 40px 60px;
+  border: 12px solid #111; border-radius: 30px;
+  text-align: center; box-shadow: 20px 20px 0 rgba(0,0,0,.5);
+  animation: cutin-slide .3s cubic-bezier(.2,1.8,.4,1) both;
+}
+@keyframes cutin-slide { from { transform: translate(-160%,-50%) rotate(-3deg); } }
+.cutin-face {
+  width: 300px; height: 300px; margin: 0 auto; border-radius: 50%;
+  border: 10px solid #111; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 150px; -webkit-text-stroke: 8px #111; paint-order: stroke fill; color: #fff;
+}
+.cutin-name {
+  font-family: var(--font-impact);
+  font-size: 76px; color: #fff; -webkit-text-stroke: 7px #111; paint-order: stroke fill; margin-top: 16px;
+}
+.cutin-game {
+  font-size: 46px; color: #111; background: #fff; border-radius: 999px;
+  display: inline-block; padding: 6px 40px; margin-top: 14px; border: 6px solid #111;
+}
+.cutin-rule {
+  font-size: 40px; color: #fff;
+  background: rgba(0,0,0,.55); border-radius: 16px;
+  padding: 12px 30px; margin-top: 18px;
+  line-height: 1.4;
+}
+
+/* ---------- ミニゲーム共通 ---------- */
+.sc-mg { background: #333; }
+
+/* ============ 一閃カウンター(格闘ゲーム) ============ */
+.mg-issen { background: radial-gradient(circle at 50% 60%, #4a4a5e, #16161f 70%); }
+.hp-row {
+  position: absolute; left: 60px; right: 60px; top: 40px;
+  display: flex; justify-content: space-between; gap: 60px; z-index: 12;
+}
+.hp-block { flex: 1; }
+.hp-name {
+  font-family: var(--font-impact);
+  font-size: 34px; color: #fff; -webkit-text-stroke: 4px #111; paint-order: stroke fill;
+  margin-bottom: 6px;
+}
+.hp-block.foe-side .hp-name { text-align: right; }
+.hp-bar {
+  height: 44px; background: #26262e;
+  border: 5px solid #111; border-radius: 10px;
+  overflow: hidden; box-shadow: 4px 4px 0 rgba(0,0,0,.4);
+}
+.hp-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(180deg, #ffe17a, #ffb300);
+  transition: width .8s cubic-bezier(.2,.8,.3,1);
+}
+.hp-block.foe-side .hp-bar { transform: scaleX(-1); }
+.issen-fighters {
+  position: absolute; left: 47%; top: 54%; transform: translate(-50%,-50%);
+  display: flex; gap: 360px; align-items: flex-end;
+}
+.fighter {
+  width: 480px; height: 600px;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(10px 10px 0 rgba(0,0,0,.4));
+}
+.fighter.me { width: 1040px; height: 950px; }
+.fighter.foe-img { width: 650px; height: 806px; transform: scaleX(-1); }
+.fighter.plain {
+  width: 240px; height: 420px; border-radius: 30px;
+  border: 10px solid #111; box-shadow: 10px 10px 0 rgba(0,0,0,.4);
+  display: flex; align-items: flex-start; justify-content: center;
+  font-size: 90px; color: #fff; -webkit-text-stroke: 6px #111; paint-order: stroke fill;
+  padding-top: 20px;
+}
+/* 決着アニメ: 勝者は踏み込んで戻る / 敗者はぶるぶる */
+@keyframes lunge      { 0%,100% { transform: translateX(0); } 40% { transform: translateX(260px); } }
+@keyframes foe-lunge  { 0%,100% { transform: scaleX(-1) translateX(0); } 40% { transform: scaleX(-1) translateX(260px); } }
+@keyframes tremble     { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-12px); } 75% { transform: translateX(12px); } }
+@keyframes foe-tremble { 0%,100% { transform: scaleX(-1) translateX(0); } 25% { transform: scaleX(-1) translateX(-12px); } 75% { transform: scaleX(-1) translateX(12px); } }
+.fighter.lunge       { animation: lunge .5s ease-out 1; }
+.fighter.foe-lunge   { animation: foe-lunge .5s ease-out 1; }
+.fighter.tremble     { animation: tremble .14s linear infinite; }
+.fighter.foe-tremble { animation: foe-tremble .14s linear infinite; }
+.issen-ready {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%);
+  font-family: var(--font-impact);
+  font-size: 120px; color: #fff; -webkit-text-stroke: 8px #111; paint-order: stroke fill;
+  z-index: 10; white-space: nowrap;
+}
+.issen-signal {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%) rotate(-5deg);
+  font-family: var(--font-impact);
+  font-size: 210px; color: #ff1744; -webkit-text-stroke: 10px #fff; paint-order: stroke fill;
+  z-index: 10; white-space: nowrap;
+  animation: pop-in .12s both;
+}
+.issen-fx {
+  position: absolute; width: 600px; height: 450px;
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  z-index: 11;
+  animation: pop-in .12s both;
+}
+.zubam {
+  position: absolute; left: 50%; top: 50%;
+  font-family: var(--font-impact);
+  font-size: 200px; color: #ffd54f; -webkit-text-stroke: 12px #111; paint-order: stroke fill;
+  transform: translate(-50%,-50%) rotate(-12deg); z-index: 12; white-space: nowrap;
+  animation: pop-in .15s both;
+}
+
+/* ============ ジャスト・ビート(bpm同期) ============ */
+.mg-beat { background: #ffe082; }
+.bpm-bounce { animation: bpm-bounce var(--beat, .5s) ease-in-out infinite; transform-origin: center bottom; }
+@keyframes bpm-bounce {
+  0%, 100% { transform: scale(1, 1); }
+  30%      { transform: scale(1.06, .93); }
+  60%      { transform: scale(.97, 1.05); }
+}
+.beat-speaker {
+  position: absolute; bottom: 30px;
+  width: 320px; height: 320px;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  z-index: 3;
+}
+.beat-speaker.left  { left: 60px; }
+.beat-speaker.right { right: 60px; }
+/* 中央スピーカー: 背景と同じ縮尺(全画面cover)で振動 */
+.beat-speaker.center {
+  left: 0; right: 0; top: 0; bottom: 0;
+  width: auto; height: auto; z-index: 2;
+  background-size: cover !important;
+  background-position: center !important;
+  animation: speaker-vibe var(--beat, .5s) linear infinite;
+}
+@keyframes speaker-vibe {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 3px); }
+  40% { transform: translate(5px, -4px); }
+  60% { transform: translate(-4px, -2px); }
+  80% { transform: translate(6px, 3px); }
+}
+.beat-dancer {
+  position: absolute; left: 50%; top: 56%; transform: translate(-50%,-50%);
+  width: 460px; height: 560px;
+  filter: drop-shadow(8px 8px 0 rgba(0,0,0,.25));
+  z-index: 4;
+}
+.beat-lane {
+  /* 長さ105%(1512px)・50px下げ */
+  position: absolute; left: 204px; right: 204px; top: calc(78% + 50px); height: 12px;
+  background: #111; border-radius: 6px; z-index: 5;
+}
+.beat-ring {
+  /* 判定リングは左端(ノーツは右→左) */
+  position: absolute; left: -80px; top: 50%; transform: translate(0,-50%);
+  width: 170px; height: 170px; border-radius: 50%;
+  border: 14px solid #111; background: #fff;
+}
+.beat-ring.img { border: none; background: transparent; }
+.beat-note {
+  position: absolute; top: 50%; transform: translate(-50%,-50%);
+  width: 120px; height: 120px; border-radius: 50%;
+  background: #ff5fa2; border: 10px solid #111;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 54px; color: #fff; z-index: 6;
+}
+.beat-note.img { border: none; background: transparent; background-size: contain !important; border-radius: 0; }
+
+/* ============ 歯科治療(溺惑) ============ */
+.mg-charge { background: repeating-linear-gradient(-45deg, #b2ebf2 0 90px, #80deea 90px 180px); }
+.charge-doctor {
+  position: absolute; left: 22%; top: 50%; transform: translate(-50%,-50%);
+  width: 700px; height: 900px;
+  z-index: 4;
+  transition: filter .3s ease;
+}
+.charge-tooth {
+  position: absolute; left: 66%; top: 44%; transform: translate(-50%,-50%);
+  width: 1150px; height: 700px;
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  filter: drop-shadow(6px 6px 0 rgba(0,0,0,.2));
+  z-index: 3;
+  transition: filter .3s ease;
+}
+.charge-tooth.treating { animation: tooth-rattle .12s linear infinite; }
+@keyframes tooth-rattle {
+  0%,100% { margin-left: 0; } 25% { margin-left: -8px; } 75% { margin-left: 8px; }
+}
+.charge-target {   /* 画像未設定時の仮ターゲット */
+  position: absolute; left: 68%; top: 42%; transform: translate(-50%,-50%);
+  width: 300px; height: 300px; border-radius: 50%;
+  background: #ef5350; border: 12px solid #111;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 110px; color: #fff; -webkit-text-stroke: 7px #111; paint-order: stroke fill;
+}
+/* 会話バブル(話者側に寄り、しっぽが話者を指す) */
+.talk-bubble {
+  position: absolute; left: 50%; bottom: 200px; transform: translateX(-50%);
+  min-width: 800px; max-width: 1400px;
+  background: #fff; border: 7px solid #111; border-radius: 26px;
+  padding: 22px 44px; z-index: 14;
+  box-shadow: 8px 8px 0 rgba(0,0,0,.3);
+  font-size: 40px; color: #111; line-height: 1.5;
+  transition: left .25s ease;
+}
+.talk-bubble .talk-name {
+  display: inline-block; font-size: 30px; color: #fff; background: #111;
+  border-radius: 999px; padding: 2px 26px; margin-bottom: 8px;
+}
+.talk-bubble.from-left  { left: 32%; }
+.talk-bubble.from-right { left: 64%; }
+.talk-bubble::after {
+  content: ''; position: absolute; top: -30px;
+  border: 18px solid transparent; border-bottom-color: #111;
+}
+.talk-bubble.from-left::after  { left: 90px; }
+.talk-bubble.from-right::after { left: auto; right: 90px; }
+@keyframes speak-bounce { 0%,100% { margin-top: 0; } 50% { margin-top: -14px; } }
+.speaking { animation: speak-bounce .45s ease-in-out infinite; }
+/* チャージバー */
+.charge-bar {
+  position: absolute; left: 50%; top: 76%; transform: translate(-50%,-50%);
+  width: 1200px; height: 110px;
+  background: #fff; border: 10px solid #111; border-radius: 20px;
+  overflow: hidden; z-index: 10;
+}
+.charge-zone { position: absolute; top: 0; bottom: 0; }
+.charge-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: repeating-linear-gradient(90deg, #ff5fa2 0 40px, #ff8ac0 40px 80px);
+  border-right: 8px solid #111;
+}
+.charge-label { position: absolute; top: 100%; margin-top: 14px; font-size: 30px; color: #111; transform: translateX(-50%); white-space: nowrap; }
+
+/* ============ ときめきトーク(恋愛シム) ============ */
+.mg-tokimeki { background: radial-gradient(circle at 30% 20%, #f8bbd0, #f48fb1 60%, #ec6fa8); }
+.mg-tokimeki .mg-title { left: 60px; transform: rotate(-2deg); }  /* キャラと重ならない左上 */
+.toki-char {
+  position: absolute; left: 50%; top: 37%; transform: translate(-50%,-50%);
+  width: 1460px; height: 810px;
+  background-size: contain; background-position: center bottom; background-repeat: no-repeat;
+  filter: drop-shadow(0 10px 24px rgba(120,20,60,.35));
+  z-index: 3;
+}
+.toki-char.plain {
+  width: 340px; height: 480px; border-radius: 40px;
+  border: 10px solid #fff; box-shadow: 0 0 0 8px #b39ddb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 140px; color: #fff; -webkit-text-stroke: 8px #111; paint-order: stroke fill;
+}
+.toki-window {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  width: 1500px; min-height: 300px;
+  background: rgba(18, 28, 68, .94);
+  border: 8px solid #0a1440;
+  border-radius: 34px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 14px 30px rgba(0,0,0,.35);
+  padding: 26px 56px 30px; z-index: 10;
+  color: #fff;
+}
+.toki-speaker {
+  display: inline-block;
+  font-size: 32px; color: #fff;
+  background: #C8102E; border: 4px solid #0a1440; border-radius: 999px;
+  padding: 2px 34px; margin-bottom: 12px;
+}
+.toki-speaker.you { background: #1565c0; }
+.toki-text { font-size: 42px; line-height: 1.55; min-height: 66px; }
+.toki-text .caret { animation: blink .8s steps(2) infinite; }
+.toki-choices { margin-top: 10px; }
+.toki-choice {
+  font-size: 38px; color: rgba(255,255,255,.55);
+  background: rgba(255,255,255,.06);
+  border: 4px solid rgba(255,255,255,.25); border-radius: 999px;
+  padding: 8px 30px; margin: 10px 0; text-align: center;
+  transition: transform .05s;
+}
+.toki-choice.sel {
+  color: #fff; background: #ff5fa2; border-color: #fff;
+  transform: scale(1.03);
+}
+.heart-burst { position: absolute; font-size: 90px; animation: float-y 1s ease-in-out infinite; z-index: 11; }
+
+/* ============ 裏ステージ突入演出 ============ */
+.sc-ura-intro { background: #000; }
+.ura-warning {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 1400px; height: 700px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  animation: pop-in .2s both;
+}
+.ura-warning .uw-main {
+  font-family: var(--font-impact);
+  font-size: 220px; color: #ff1744;
+  -webkit-text-stroke: 6px #fff; paint-order: stroke fill;
+  text-shadow: 0 0 60px rgba(255,23,68,.9);
+  animation: blink .5s steps(2) infinite;
+}
+.ura-warning .uw-sub {
+  font-family: var(--font-pixel);
+  font-size: 50px; color: #fff; letter-spacing: 20px; margin-top: 10px;
+}
+
+/* ============ 裏ステージ本編(写実系トーン) ============ */
+.mg-ura { background: #0a0618; }
+.ura-vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,10,.75) 100%);
+}
+/* 上部タイトル(text_space): 大きめ・ほのかに明滅 */
+.ura-guide {
+  position: absolute; left: 50%; top: 160px; transform: translate(-50%,-50%);
+  width: 1500px; height: 560px; z-index: 6;
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  font-family: var(--font-pixel); font-size: 60px; color: #ffd54f; text-align: center;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 0 15px rgba(253,224,71,.8));
+}
+.ura-guide.soft-blink { animation: soft-blink 2.8s ease-in-out infinite; }
+/* リール: 背景の写実トーンに合わせた金属+ガラス調 */
+.ura-reel {
+  position: absolute; transform: translate(-50%,-50%);
+  overflow: hidden; z-index: 3;
+  background: linear-gradient(180deg, #0d0a2a 0%, #241b5e 16%, #2f2670 50%, #241b5e 84%, #0d0a2a 100%);
+  border: 7px solid #c9a227;
+  border-radius: 22px;
+  box-shadow:
+    0 0 34px rgba(120,90,255,.55),
+    0 10px 30px rgba(0,0,0,.7),
+    inset 0 0 26px rgba(0,0,0,.85);
+}
+.ura-reel::before {   /* 筒の上下シェーディング(リールの丸み) */
+  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,15,.6), transparent 22%, transparent 78%, rgba(0,0,15,.65));
+}
+.ura-reel::after {   /* ガラスの光沢 */
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.16) 42%, rgba(255,255,255,.05) 55%, transparent 62%);
+}
+.ura-sym { width: 100%; }
+.ura-text {
+  position: absolute; left: 50%; top: 24%; transform: translate(-50%,-50%);
+  width: 700px; height: 340px; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-impact); font-size: 120px; color: #fff;
+  -webkit-text-stroke: 6px #111; paint-order: stroke fill;
+  animation: pop-in .2s both;
+}
+.ura-text.big { width: 1000px; height: 500px; top: 30%; }
+
+/* ---------- チェーン間の等級スプラッシュ ---------- */
+.sc-splash { background: #111; }
+.splash-credits {
+  position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%);
+  font-size: 46px; letter-spacing: 10px; color: #ff5fa2;
+}
+
+/* ---------- 最終結果 ---------- */
+.sc-result { background: repeating-conic-gradient(from 0deg at 50% 46%, #ffd54f 0 12deg, #ffca28 12deg 24deg); }
+.sc-result.rank-low { background: repeating-conic-gradient(from 0deg at 50% 46%, #90a4ae 0 12deg, #78909c 12deg 24deg); }
+.result-rank {
+  position: absolute; left: 50%; top: 44%; transform: translate(-50%,-50%) rotate(-2deg);
+  font-family: var(--font-impact);
+  font-size: 190px; color: #fff; -webkit-text-stroke: 9px #111; paint-order: stroke fill;
+  white-space: nowrap;
+}
+.result-prize {
+  position: absolute; left: 50%; top: 66%; transform: translateX(-50%);
+  font-size: 52px; color: #111; background: #fff;
+  border: 8px solid #111; border-radius: 999px; padding: 16px 70px;
+  box-shadow: 8px 8px 0 rgba(0,0,0,.3); white-space: nowrap;
+}
