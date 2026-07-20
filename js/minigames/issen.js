@@ -74,7 +74,7 @@ MiniGames.register('issen', {
         signalT = performance.now();
         ready.remove();
         Engine.flash('#fff', 120);
-        Engine.sound('go');
+        //Engine.sound('go');
         Engine.el(s, 'issen-signal', 'Fight!!');
         setTimeout(() => finish({ level: 'fail', label: 'うごけなかった...' }), cfg.timeoutMs || 1500);
       }, delay);

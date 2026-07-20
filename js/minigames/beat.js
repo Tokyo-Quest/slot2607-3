@@ -95,7 +95,7 @@ MiniGames.register('beat', {
         });
       };
       Engine.Input.onPress(onPress);
-      setTimeout(() => Engine.sound('go'), target - performance.now());
+      //setTimeout(() => Engine.sound('go'), target - performance.now());
       setTimeout(() => finish({ level: 'fail', dt: null, label: '押しそびれた...' }), target - performance.now() + 600);
     });
 

@@ -189,9 +189,9 @@ window.Slot = (() => {
 
       for (let k = 0; k < 3; k++) {
         await Engine.Input.waitPress();
-        Engine.sound('button');
-        await reels[k].stopAt(finals[k]);
         Engine.sound('stop');
+        //Engine.sound('button');
+        await reels[k].stopAt(finals[k]);
         await Engine.sleep(120);
         // 2つ揃ったらリーチ表示(3つ目はプレイヤーが止める)
         if (k === 1 && finals[0] === finals[1]) {

@@ -71,8 +71,8 @@ window.CONFIG = {
   //   スロット失敗=4等 / ミニゲーム失敗=3等 / 裏ハズレ=2等 / 裏通常揃い=1等 / 裏特別揃い=特賞
   tiers: {
     0: { name: '特賞', prize: '???(当選なし・展示用)', color: '#ff1744' },
-    1: { name: '1等',  prize: 'サイン入りチェキ',       color: '#ffd54f' },
-    2: { name: '2等',  prize: '限定ステッカー・缶バッジ', color: '#b39ddb' },
+    1: { name: '1等',  prize: 'サイン入りチェキ',       color: '#ff1744' },
+    2: { name: '2等',  prize: '限定ステッカー・缶バッジ', color: '#ffd54f' },
     3: { name: '3等',  prize: 'ランダムトレカ 1枚',     color: '#4fc3f7' },
     4: { name: '4等',  prize: '参加賞(ミニカード)',     color: '#b0bec5' },
   },
@@ -91,7 +91,7 @@ window.CONFIG = {
     issen: {
       ruleText: 'Fight!!の合図で早押し勝負',
       minWait: 2000, maxWait: 6000,
-      perfectMs: 250, goodMs: 300,   // good以内=成功(判定幅で成功率を調整)
+      perfectMs: 300, goodMs: 350,   // good以内=成功(判定幅で成功率を調整)
       timeoutMs: 1500,
       images: {
         bg: 'bg_issen.png', fight: 'stand_soba_fight.png', win: 'stand_soba_win.png',
@@ -101,7 +101,7 @@ window.CONFIG = {
     beat: {
       ruleText: 'ジャストの1拍を 撃ちぬけ!!',
       bpm: 120,
-      perfectMs: 10, goodMs: 24,   // 判定シビア(旧: 90/200)
+      perfectMs: 10, goodMs: 15,   // 判定シビア(旧: 90/200)
       danceFrames: ['stand_aoi.png', 'stand_aoi_kime.png'],
       images: {
         bg: 'bg_beat.png', note: 'note_beat.png', ring: 'ring_beat.png',
@@ -111,7 +111,7 @@ window.CONFIG = {
     },
     charge: {
       ruleText: 'ボタン長押しで、ぎりぎりまで削れ!!',
-      duration: 2500,
+      duration: 1500,
       curve: 3.7,            // メーター加速カーブ(1=等速。大きいほど末端で速い)
       okStart: 0.90, justStart: 0.96, justEnd: 0.99,
       typeMs: 70,
@@ -148,27 +148,27 @@ window.CONFIG = {
   // file にパスを入れると差し替え。null は内蔵シンセ音
   // 裏ステージは my-slot-app の音源を使用
   sounds: {
-    button:  { file: null, volume: 1 },
-    stop:    { file: null, volume: 1 },
-    reach:   { file: null, volume: 1 },
-    win:     { file: null, volume: 1 },
-    bigwin:  { file: null, volume: 1 },
-    lose:    { file: null, volume: 1 },
+    button:  { file: 'assets/sounds/button.mp3', volume: 1 },
+    stop:    { file: 'assets/sounds/stop.mp3', volume: 1 },
+    reach:   { file: 'assets/sounds/reach.mp3', volume: 1 },
+    win:     { file: 'assets/sounds/win.mp3', volume: 1 },
+    bigwin:  { file: 'assets/sounds/win.mp3', volume: 1 },
+    lose:    { file: 'assets/sounds/lose.mp3', volume: 1 },
     tick:    { file: null, volume: 1 },
-    go:      { file: null, volume: 1 },
+    go:      { file: 'assets/sounds/go.mp3', volume: 1 },
     perfect: { file: null, volume: 1 },
     good:    { file: null, volume: 1 },
     miss:    { file: null, volume: 1 },
     charge:  { file: null, volume: 1 },
-    type:    { file: null, volume: 1 },
+    type:    { file: 'assets/sounds/type.mp3', volume: 1 },
     beatBgm: { file: 'assets/sounds/beat_music.mp3', volume: 1 },
     // 裏ステージ用(実音源)
     uraStart: { file: 'assets/sounds/ura/se_start.mp3',       volume: 1 },
     uraStop:  { file: 'assets/sounds/ura/se_stop.mp3',        volume: 1 },
     uraReach: { file: 'assets/sounds/ura/se_reach_start.mp3', volume: 1 },
-    uraWin:   { file: 'assets/sounds/ura/se_win_1.mp3',       volume: 1 },
+    uraWin:   { file: 'assets/sounds/ura/se_win_normal.mp3',       volume: 1 },
     uraLose:  { file: 'assets/sounds/ura/se_lose.mp3',        volume: 1 },
-    bgmUra:   { file: 'assets/sounds/ura/bgm_spin.mp3',       volume: 0.6, loop: true },
+    bgmUra:   { file: 'assets/sounds/ura/bgm_idle.mp3',       volume: 0.6, loop: true },
     // BGM(未指定)
     bgmAttract: { file: null, volume: 0.6, loop: true },
     bgmSlot:    { file: null, volume: 0.6, loop: true },

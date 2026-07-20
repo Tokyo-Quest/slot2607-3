@@ -114,7 +114,7 @@ MiniGames.register('tokimeki', {
       }
       speakerTag.textContent = sc.speaker || member.name;
       speakerTag.classList.remove('you');
-      textEl.textContent = '「......っ!(照れ)」';
+      textEl.textContent = '「ありがとう!(照れ)」';
       Engine.el(s, 'burst', 'ときめいた...!💗');
       Engine.confetti(80);
     } else {
